@@ -1,0 +1,8 @@
+SRCS := 01/main.pas 02/main.pas 03/main.pas
+BINS := $(SRCS:.pas=)
+
+.PHONY: all
+all: $(BINS)
+
+%: %.pas
+	fpc $< -O4 -XX -Xs
