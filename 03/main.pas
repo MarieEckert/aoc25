@@ -20,10 +20,7 @@ begin
 	n := Length(batteries);
 
 	if (k <= 0) or (n = 0) then
-	begin
-		result := 0;
-		exit;
-	end;
+		exit(0);
 
 	if k > n then
 		k := n;
@@ -52,17 +49,11 @@ begin
 		begin
 			stack[top] := digit;
 			Inc(top);
-		end
-		else
-		begin
-			{
-				we already have k digits, but we might still be allowed to
-				drop some later; in that case, we just "drop" the current digit
-				by not pushing it.
-			}
-			if toRemove > 0 then
-				Dec(toRemove);
+			continue;
 		end;
+
+		if toRemove > 0 then
+			Dec(toRemove);
 	end;
 
 	result := 0;
@@ -71,11 +62,11 @@ begin
 end;
 
 var
-	batteries: TUInt8DynArray;
-	line: String;
-	ix: UInt32;
-	sum: UInt64;
-	max: UInt64;
+	batteries	: TUInt8DynArray;
+	line		: String;
+	ix			: UInt32;
+	sum			: UInt64;
+	max			: UInt64;
 begin
 	if ParamCount < 1 then
 	begin
@@ -101,10 +92,10 @@ begin
 		line := Trim(line);
 		SetLength(batteries, Length(line));
 		for ix := 1 to Length(line) do
-			batteries[ix-1] := StrToInt(line[ix]);
+			batteries[ix-1] := Byte(line[ix]) - $30;
 
 		sum += FindLargest(batteries, max);
 	end;
 
-	WriteLn('part one: ', sum);
+	WriteLn('result: ', sum);
 end.
