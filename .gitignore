@@ -1,2 +1,4 @@
 *.o
 main
+input.txt
+example.txt
