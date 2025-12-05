@@ -5,4 +5,4 @@ BINS := $(SRCS:.pas=)
 all: $(BINS)
 
 %: %.pas
-	fpc $< -XX -gw3
+	fpc $< -XX -Xs -O4
