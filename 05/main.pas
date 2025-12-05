@@ -1,7 +1,10 @@
 {$mode objfpc}
 program main;
 
+{$ModeSwitch ArrayOperators}
+
 uses
+	Math,
 	SysUtils;
 
 type
@@ -13,27 +16,21 @@ type
 	TRanges = array of TRange;
 
 procedure BSort(var ranges: TRanges);
-
-	procedure Swap(var a, b: TRange);
-	var
-		temp : TRange;
-	begin
-		temp := a;
-		a := b;
-		b := temp;
-	end;
-
 var
-	n, newn, i: UInt64;
+	n, newn, i	: UInt64;
+	temp		: TRange;
 begin
 	n := High(ranges);
 	repeat
 		newn := 0;
 		for i := 1 to n do
 		begin
-			if ranges[i - 1].first <= ranges[i].first then
+			if ranges[i-1].first <= ranges[i].first then
 				continue;
-			swap(ranges[i - 1], ranges[i]);
+
+			temp := ranges[i-1];
+			ranges[i-1] := ranges[i];
+			ranges[i] := temp;
 			newn := i;
 		end ;
 		n := newn;
@@ -46,12 +43,9 @@ begin
 	if (second.first > dest.last)
 	or (second.last < dest.first) then
 		exit(False);
-	
-	if dest.first > second.first then
-		dest.first :=  second.first;
-	if dest.last < second.last then
-		dest.last := second.last;
 
+	dest.first	:=  Min(dest.first, second.first);
+	dest.last	:= Max(dest.last, second.last);
 	exit(True);
 end;
 
@@ -60,7 +54,7 @@ var
 	ix: UInt64;
 begin
 	SetLength(result, 0);
-	
+
 	BSort(ranges);
 
 	for ix := 0 to Length(ranges) - 1 do
@@ -68,23 +62,18 @@ begin
 		if ranges[ix].first < 0 then
 			continue;
 
-		if ix + 1 = Length(ranges) then
+		if ix + 1 < Length(ranges) then
 		begin
-			SetLength(result, Length(result) + 1);
-			result[High(result)] := ranges[ix];
-			break;
+			if TryCombine(ranges[ix], ranges[ix + 1]) then
+				ranges[ix + 1].first := -1
+			else if TryCombine(ranges[ix + 1], ranges[ix]) then
+			begin
+				ranges[ix] := ranges[ix + 1];
+				ranges[ix + 1].first := -1;
+			end;
 		end;
 
-		if TryCombine(ranges[ix], ranges[ix + 1]) then
-			ranges[ix + 1].first := -1
-		else if TryCombine(ranges[ix + 1], ranges[ix]) then
-		begin
-			ranges[ix] := ranges[ix + 1];
-			ranges[ix + 1].first := -1;
-		end;
-
-		SetLength(result, Length(result) + 1);
-		result[High(result)] := ranges[ix];
+		result += [ranges[ix]];
 	end;
 end;
 
@@ -94,8 +83,7 @@ var
 begin
 	if Length(ranges) = 0 then
 	begin
-		SetLength(ranges, 1);
-		ranges[0] := range;
+		ranges += [range];
 		exit;
 	end;
 
@@ -113,15 +101,29 @@ begin
 		end;
 	end;
 
-	SetLength(ranges, Length(ranges) + 1);
-	ranges[High(ranges)] := range;
+	ranges += [range];
+end;
+
+procedure CheckFresh(const ingredient: Int64; const ranges: TRanges; var counter: UInt64);
+var
+	range: TRange;
+begin
+	for range in ranges do
+	begin
+		if (range.first > ingredient)
+		or (range.last < ingredient) then
+			continue;
+
+		Inc(counter);
+		exit;
+	end;
 end;
 
 var
 	readingRanges	: Boolean;
 	line			: String;
-	tmpRange		: TRange;
-	tmpUInt, total	: UInt64;
+	range			: TRange;
+	sep, total		: UInt64;
 	ranges			: TRanges;
 begin
 	readingRanges := True;
@@ -134,39 +136,32 @@ begin
 	begin
 		ReadLn(line);
 		line := Trim(line);
-		if readingRanges and (Length(line) = 0) then
+
+		if not readingRanges then
+		begin
+			CheckFresh(StrToInt64(line), ranges, total);
+			continue;
+		end;
+
+		if Length(line) = 0 then
 		begin
 			readingRanges := False;
 			ranges := CombineExisting(ranges);
 			continue;
 		end;
 
-		if readingRanges then
-		begin
-			tmpUInt := Pos('-', line);
-			tmpRange.first := StrToInt64(Copy(line, 1, tmpUInt - 1));
-			tmpRange.last := 
-				StrToInt64(Copy(line, tmpUInt + 1, Length(line) - tmpUInt));
-			AddOrCombineRange(ranges, tmpRange);
-			continue;
-		end;
+		sep := Pos('-', line);
+		range.first := StrToInt64(Copy(line, 1, sep - 1));
+		range.last := StrToInt64(Copy(line, sep + 1, Length(line) - sep));
 
-		tmpUInt := StrToUInt64(line);
-		for tmpRange in ranges do
-		begin
-			if (tmpRange.first > tmpUInt) or (tmpRange.last < tmpUInt) then
-				continue;
-
-			Inc(total);
-			break;
-		end;
+		AddOrCombineRange(ranges, range);
 	end;
 
 	WriteLn('part one: ', total);
 
 	total := 0;
-	for tmpRange in ranges do
-		total += tmpRange.last - tmpRange.first + 1;
+	for range in ranges do
+		total += range.last - range.first + 1;
 
 	WriteLn('part two: ', total);
 end.
